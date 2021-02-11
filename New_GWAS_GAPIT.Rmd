@@ -1,0 +1,196 @@
+---
+title: "GWAS for EC100 by GAPIT_SUPER"
+author: "Gwonjin Lee"
+date: "16 May 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+#Install packages (Do this section only for new installation of R)
+#-------------------------------------------------------------------------------
+#source("http://www.bioconductor.org/biocLite.R") 
+#biocLite("multtest")
+#install.packages("gplots")
+#install.packages("LDheatmap")
+#install.packages("genetics")
+#install.packages("EMMREML")
+#install.packages("scatterplot3d") #The downloaded link at: http://cran.r-project.org/package=scatterplot3d
+#install.packages("genetics")
+
+
+library('MASS') # required for ginv
+library(multtest)
+library(gplots)
+library(LDheatmap)
+library(genetics)
+library(EMMREML)
+library(compiler) #required for cmpfun
+library("scatterplot3d")
+#source("/Users/Zhiwu/Dropbox/Current/revolutionr/gapit/gapit_functions.txt")
+source("http://zzlab.net/GAPIT/gapit_functions.txt")
+source("http://zzlab.net/GAPIT/emma.txt")
+
+```
+
+
+# Load files
+
+```{r}
+#Step 1: Set working directory and import data
+
+setwd("C:/Users/Justin/OneDrive - rub.de/PhD/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/GAPIT/EC100")
+
+myEC100 <- read.delim("EC100_final for association_genotypemerged.txt", head = TRUE)
+
+myGlyr0.15EC100 <- read.delim("Lyr_0.15_LinkimputeR_forEC100_diploid.hmp.txt" , head = FALSE)
+
+myCVEC100fromTassel <- read.delim("PCA_EC100 from Tassel.txt", head = TRUE)
+
+
+#taxa=colnames(read.delim("Ahal_postFinalFilter_imputed_BadSampsRemoved0.15_610samples.hmp.txt", head = TRUE))
+#colnames(myYEC100)
+
+```
+
+
+## GWAS for EC100 with lyrata genome by SUPER
+
+```{r}
+
+#myCVEC100fromTassel <- read.delim("PCfromTasselEC100.txt")
+
+myGAPIT_lyr_SUPER <- GAPIT(
+Y=myEC100,
+G=myGlyr0.15EC100,
+#CV=myCVEC100fromTassel,
+PCA.total = 3,
+sangwich.top="GLM", #options are GLM,MLM,CMLM, FaST and SUPER
+sangwich.bottom="SUPER", #options are GLM,MLM,CMLM, FaST and SUPER
+memo = "SUPER",
+LD=0.1,
+)
+
+#PCA.View.output=TRUE
+
+```
+
+
+## GWAS for EC100 with lyrata genome by MLM
+
+```{r}
+
+#myCVEC100fromTassel <- read.delim("PCfromTasselEC100.txt")
+
+myGAPIT_CMLM <- GAPIT(
+Y=myEC100,
+G=myGlyr0.15EC100,
+#CV=myCVEC100fromTassel,
+PCA.total = 3,
+memo = "CMLM",
+)
+
+#PCA.View.output=TRUE
+
+```
+
+```{r}
+
+#myCVEC100fromTassel <- read.delim("PCfromTasselEC100.txt")
+
+myGAPIT_lyr_MLM2 <- GAPIT(
+Y=myEC100,
+G=myGlyr0.15EC100,
+#CV=myCVEC100fromTassel,
+PCA.total = 3,
+sangwich.top="GLM", #options are GLM,MLM,CMLM, FaST and SUPER
+sangwich.bottom="MLM", #options are GLM,MLM,CMLM, FaST and SUPER
+memo = "MLM",
+LD=0.1,
+)
+
+#PCA.View.output=TRUE
+
+```
+
+```{r}
+
+#myCVEC100fromTassel <- read.delim("PCfromTasselEC100.txt")
+
+myGAPITEC100lyr_ECMLM <- GAPIT(
+Y=myEC100,
+G=myGlyr0.15EC100,
+#CV=myCVEC100fromTassel,
+PCA.total = 3,
+kinship.cluster=c("median"),
+kinship.group=c("Median"),
+group.from=50,
+group.to=615,
+group.by=10,
+memo = "ECMLM"
+)
+
+
+
+#PCA.View.output=TRUE
+
+```
+
+
+
+## Manhattan plot
+```{r}
+
+library(qqman)
+
+setwd("C:/Users/Justin/OneDrive - rub.de/PhD/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/GAPIT/EC100/Singinificant SNPs analysis")
+
+layout(matrix(c(1,2,3,4,5,6,7,8), 4, 2, byrow = TRUE), 
+  	widths=c(2,1))
+
+#MLM
+EC100MLMRESULT <- read.csv("GAPIT.MLM.EC100.GWAS.Results.csv", header = TRUE, sep=",", dec=".")
+
+EC100MLM_mh <-manhattan(EC100MLMRESULT, main="EC100_MLM", chr = "Chromosome", bp = "Position", p = "P.value", snp = "SNP", col = c("slateblue4", "orange2"), ylim= c(0,6), genomewideline = FALSE, suggestiveline = FALSE)
+
+qq(EC100MLMRESULT$P.value)
+
+
+#CMLM 
+EC100CMLMRESULT <- read.csv("GAPIT.CMLM.EC100.GWAS.Results.csv", header = TRUE, sep=",", dec=".")
+
+manhattan(EC100CMLMRESULT, main="EC100_CMLM", chr = "Chromosome", bp = "Position", p = "P.value", snp = "SNP", col = c("slateblue4", "orange2"), ylim= c(0,7), genomewideline = FALSE, suggestiveline = FALSE)
+
+qq(EC100CMLMRESULT$P.value)
+
+
+#ECMLM 
+EC100ECMLMRESULT <- read.csv("GAPIT.ECMLM.EC100.GWAS.Results.csv", header = TRUE, sep=",", dec=".")
+
+manhattan(EC100ECMLMRESULT, main="EC100_ECMLM", chr = "Chromosome", bp = "Position", p = "P.value", snp = "SNP", col = c("slateblue4", "orange2"), ylim= c(0,7), genomewideline = FALSE, suggestiveline = FALSE)
+
+qq(EC100ECMLMRESULT$P.value)
+
+#SUPER
+EC100superRESULT <- read.csv("GAPIT.SUPER.EC100.GWAS.Results.csv", header = TRUE, sep=",", dec=".")
+
+#manhattan(EC100superRESULT, main="EC100_SUPER", chr = "Chromosome", bp = "Position", p = "P.value", snp = "SNP", col = c("slateblue4", "orange2"), ylim= c(0,7), genomewideline = -log10(7e-06), suggestiveline = -log10(8e-05))
+
+EC100_SUPER_mh<-manhattan(EC100superRESULT, main="EC100_SUPER", chr = "Chromosome", bp = "Position", p = "P.value", snp = "SNP", col = c("slateblue4", "orange2"), ylim= c(0,10), genomewideline = FALSE, suggestiveline = FALSE)
+
+
+qq(EC100superRESULT$P.value)
+
+#library(qvalue)
+
+#manhattan(EC100superRESULT, p="FDR_Adjusted_P.values")
+
+
+```
+
+
+

@@ -1,0 +1,32 @@
+---
+title: "Phenotype_soil_final"
+author: "Gwonjin Lee"
+date: "May 31, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+setwd("C:/Users/Justin/OneDrive - rub.de/PhD/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/New_GWAS/Phenotype")
+
+Pheno <- read.delim("All_phenotype_merged_final.txt")
+dim(Pheno)
+Soil_data <- read.delim("Soil_data.txt")
+
+
+library(plyr)
+Pheno_soil <- join(Pheno, Soil_data,
+                    by = "Sample")
+
+
+write.table(as.data.frame(Pheno_soil), "Pheno_soil.txt", sep = "\t", row.names = FALSE)
+
+
+
+
+
+
+
+
+```
