@@ -1,0 +1,504 @@
+---
+title: Significance and Manhattan of morphological symptoms (50per missing_imputed in
+  LinkimputeR_lyrata)
+author: "Gwonjin Lee"
+date: "27 Oktober 2017"
+output: html_document
+---
+
+---
+```{r "setup", include=FALSE}
+require("knitr")
+opts_knit$set(root.dir = "C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/GWAS Morpho of set1234567 final/Result from Tassel")
+```
+
+Installing Packages
+```{r installing packsages, echo=FALSE, warning=FALSE, tidy=TRUE}
+#install.packages("qqman")
+library(qqman)
+
+#Set the working directory to the folder that contains the raw data and will recieve the outputs. 
+
+setwd("C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/GWAS Morpho of set1234567 final/Result from Tassel")
+
+
+#/Volumes/pflaphy1/share/Document_Exchange/Justin/Analysis/GWAS/Results/FinalImputed_allMetals/Grennhouse_Lyr_allmetalsRaw/MLM_Lyr_Greenhouse_k_5PC_AllmetalsRaw_maf5_Lyr_postFinalFilter_Imputed_BadSampsRemoved_GreenhouseLines_maf5_+_PC_Lyr_postFinalFilter_Imputed_BadSampsRemoved_GreenhouseLines_maf5_+_Filtered_Greenhouse_LeafData_TASSEL_stats.txt
+```
+
+
+## Load TASSEL Results
+```{r, echo=FALSE}
+#Lyrata Genome, 610 samples
+
+T_RAWlyr <- read.delim("Result_Morpho_final_638samples_lyr_dp4_0.5_imputedbyLinkim_Q+K.txt")
+
+
+# Halleri Genome, 610 samples 
+#T_RAWlyr <- read.delim("Result_Exxxxxxxxxxxxxxxx_Q+K.txt")
+
+
+Traits1=c(levels(T_RAWlyr$Trait))
+
+summary(p.adjust(T_RAWlyr[T_RAWlyr$Trait==Traits1[1],]$p))
+summary(p.adjust(T_RAWlyr[T_RAWlyr$Trait==Traits1[1],]$p, method= "bonferroni"))
+summary(p.adjust(T_RAWlyr[T_RAWlyr$Trait==Traits1[1],]$p, method= "BH"))
+summary(p.adjust(T_RAWlyr[T_RAWlyr$Trait==Traits1[1],]$p), method= "BY")
+summary(p.adjust(T_RAWlyr[T_RAWlyr$Trait==Traits1[1],]$p, method= "fdr"))
+```
+
+# Convert TASSEL GWAS output to table of Pvalues
+# Correct for multiple testing with Benjamini, Hochberg, and Yekutieli (Benjamini & Yekutieli (2001))
+```{r}
+PValues1=T_RAWlyr[T_RAWlyr$Trait==Traits1[1],][2:4]
+QValues1=T_RAWlyr[T_RAWlyr$Trait==Traits1[1],][2:4]
+Sigcount1=data.frame(0,0)
+colnames(Sigcount1)=c("Trait","Count")
+Siglist1=data.frame(0,0,0,0,0,0,0)
+colnames(Siglist1)=c("Marker","Pvalue","Qvalue","FDR_Method","Trait","Chr","Pos")
+
+#log p value threshold you want (aka 5)
+PvalueThreshold = 3.7
+
+
+for (i in seq(1,length(Traits1),1)){ #loop through the Traits1
+      #create a dataframe of Pvalues for that marker
+      x=data.frame(T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$Marker, T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$p) 
+      #correct for multiple testing using Benjamini & Yekutieli (2001) ("BY") or Banjamini Hockberg ("BH" or "fdr")
+    	y=data.frame(T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$Marker, T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$p, p.adjust(T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$p, method="BY"),"BY", Traits1[i], T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$Chr, T_RAWlyr[T_RAWlyr$Trait==Traits1[i],]$Pos) 
+      colnames(x)=c("Marker",Traits1[i]) 
+      colnames(y)=c("Marker","Pvalue", Traits1[i],"FDR_Method","Trait","Chr","Pos")
+      PValues1 = merge(PValues1, x, by = "Marker")
+      QValues1 = merge(QValues1, y[c(1,3)], by = "Marker")
+      Sigcount1[i,1]=Traits1[i]
+	    Sigcount1[i,2]=length(y[(-log10(y[2]))>PvalueThreshold,]$Marker)-1 #subtracting 1 for the NA automatically included
+      z=y[-log10(y[2])>PvalueThreshold & complete.cases(y[2]) ,]
+#      z=y[y[2]<0.5 & complete.cases(y[2]) ,]
+      colnames(z)=c("Marker","Pvalue","Qvalue","FDR_Method","Trait","Chr","Pos")
+      Siglist1=rbind(Siglist1,z)
+}
+
+Siglist=Siglist1[-1,] #remove top row since it is just the 0s used to fill the data.frame
+
+write.table(Siglist,"SignificantMarkers.txt",sep="\t", row.names=F)
+
+Sigcount1
+
+FrameAll=merge(PValues1,QValues1, by="Marker")
+
+plot(FrameAll$leaf_death.x, FrameAll$leaf_death.y)
+abline(h=0.05)
+
+SiqQ_leaf_death=QValues1[QValues1$leaf_death<1,]
+SigFrame=merge(PValues1, SiqQ_leaf_death, by="Marker")
+plot(SigFrame$leaf_death.y~SigFrame$leaf_death.x)
+Siqlm=lm(SigFrame$leaf_death.y~SigFrame$leaf_death.x)
+abline(a=coefficients(Siqlm)[1], b=coefficients(Siqlm)[2] )
+
+
+
+SigPValue=as.numeric((0.5-coefficients(Siqlm)[1])/coefficients(Siqlm)[2])
+
+
+-log10(SigPValue)
+
+```
+
+#=============================================================================
+
+#plot(PValues1$necrotic_spot, QValues1$necrotic_spot, xlim=c(0,0.00001), ylim=c(0,.1))
+#abline(h=0.05)
+
+plot(PValues1$red-browning, QValues1$red-browning, xlim=c(0,0.00001), ylim=c(0,.1))
+abline(h=0.05)
+
+plot(PValues1$chlorosis, QValues1$chlorosis, xlim=c(0,0.00001), ylim=c(0,.1))
+abline(h=0.05)
+
+
+SiqQ_necrotic_spot=QValues1[QValues1$necrotic_spot<1,]
+SigFrame=merge(PValues1, SiqQ_necrotic_spot, by="Marker")
+plot(SigFrame$necrotic_spot.y~SigFrame$necrotic_spot.x)
+Siqlm=lm(SigFrame$necrotic_spot.y~SigFrame$necrotic_spot.x)
+abline(a=coefficients(Siqlm)[1], b=coefficients(Siqlm)[2] )
+SigPValue=as.numeric((0.5-coefficients(Siqlm)[1])/coefficients(Siqlm)[2])
+SigPValue=as.numeric((0.5-coefficients(Siqlm)[1])/coefficients(Siqlm)[2])
+-log10(SigPValue)
+
+SiqQ_chlorosis=QValues1[QValues1$chlorosis<1,]
+SigFrame=merge(PValues1, SiqQ_chlorosis, by="Marker")
+plot(SigFrame$chlorosis.y~SigFrame$chlorosis.x)
+Siqlm=lm(SigFrame$chlorosis.y~SigFrame$chlorosis.x)
+abline(a=coefficients(Siqlm)[1], b=coefficients(Siqlm)[2] )
+SigPValue=as.numeric((0.5-coefficients(Siqlm)[1])/coefficients(Siqlm)[2])
+-log10(SigPValue)
+
+SiqQ_red-browning=QValues1[QValues1$red-browning<1,]
+SigFrame=merge(PValues1, SiqQ_red-browning, by="Marker")
+plot(SigFrame$red-browning.y~SigFrame$red-browning.x)
+Siqlm=lm(SigFrame$red-browning.y~SigFrame$red-browning.x)
+abline(a=coefficients(Siqlm)[1], b=coefficients(Siqlm)[2] )
+SigPValue=as.numeric((0.5-coefficients(Siqlm)[1])/coefficients(Siqlm)[2])
+-log10(SigPValue)
+
+
+#PValues_pre=PValues1[-1,] #remove top row because it is just an NA seperator.
+#PValuesnecro=PValues1[is.na(PValues1$necrotic_spot)==FALSE,]
+#PValueschlo=PValues1[is.na(PValues1$chlorosis)==FALSE,]
+#PValuesred=PValues1[is.na(PValues1$red-browning)==FALSE,]
+
+
+#QValuesnecro=QValues1[is.na(QValues1$necrotic_spot)==FALSE,]
+#QValueschl=QValues1[is.na(QValues1$chlorosis)==FALSE,]
+#QValuesred=QValues1[is.na(QValues1$red-browning)==FALSE,]
+
+#=============================================================================
+
+```{r}
+
+#PValues_pre=PValues1[-1,] #remove top row because it is just an NA seperator.
+PValues=PValues1[is.na(PValues1$leaf_death)==FALSE,]
+#PValuesnecro=PValues1[is.na(PValues1$necrotic_spot.x)==FALSE,]
+
+
+
+
+
+QValues=QValues1[is.na(QValues1$leaf_death)==FALSE,]
+
+
+write.table(PValues,"Pvalues_0.5LinkimputeR.txt",sep="\t", row.names=F)
+write.table(QValues,"Qvalues_0.5LinkimputeR.txt",sep="\t", row.names=F)
+
+```
+
+# Create Manhattans with abline of corrected significance
+
+Extract Coumn names for labels and plot based on chromosome position
+```{r, echo=FALSE,fig.width=10, fig.height=5}
+
+K=colnames(PValues)
+#Lyrata
+PValues$Chr <- as.numeric(lapply(PValues$Chr, gsub, pattern = "SCAFFOLD_", replacement = "", fixed = TRUE))
+#Halleri 
+#PValues$Chr <- as.numeric(lapply(PValues$Chr, gsub, pattern = "scaffold_", replacement = "", fixed = TRUE))
+
+
+# Loop from Anderson et al., 2016: Environmnetal assocaiton in Glycine Soja
+
+#For loop below creates a manhattan plot for columns 4-end labeled with their corresponding column header
+
+#for(i in seq(4,length(K))){
+manhattan(PValues, snp = "Marker", chr="Chr", bp = "Pos", p=K[5],main = K[5], ylab="-Log P-value", col = c("blue4", "orange2"), suggestiveline = F, genomewideline = -log10(SigPValue), xlab="Scaffold", ylim= c(0, 7) )
+
+manhattan(PValues, snp = "Marker", chr="Chr", bp = "Pos", p=K[4],main = K[4], ylab="-Log P-value", col = c("blue4", "orange2"), suggestiveline = F, genomewideline = -log10(SigPValue), xlab="Scaffold", ylim= c(0, 7) )
+
+manhattan(PValues, snp = "Marker", chr="Chr", bp = "Pos", p=K[6],main = K[6], ylab="-Log P-value", col = c("blue4", "orange2"), suggestiveline = F, genomewideline = -log10(SigPValue), xlab="Scaffold", ylim= c(0, 7) )
+
+manhattan(PValues, snp = "Marker", chr="Chr", bp = "Pos", p=K[7],main = K[7], ylab="-Log P-value", col = c("blue4", "orange2"), suggestiveline = F, genomewideline = -log10(SigPValue), xlab="Scaffold", ylim= c(0, 7) )
+
+
+#for(i in seq(4,length(K))){
+#manhattan(PValues, snp = "Marker", chr="Chr", bp = "Pos", p=K[i],main = K[i], ylab="-Log P-value", col = c("blue4", "orange3"), suggestiveline = F, genomewideline = F, xlab="Scaffold" )
+ # }
+
+# col = c("blue4", "orange3"): label alternatinv chromosomes these colors
+# suggestiveline = F : don't plot suggested line 
+# genomewideline = -log10(SigPValue) : plot a line corresponding to the above calculated significance threshold
+# main = K[i] : title of the plot
+```
+
+# Extract significant markers and convert markers to genes and then to genic regions
+
+```{r}
+###  Obtain Bioconductor package GenomicRanges
+
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("GenomicRanges")
+library(GenomicRanges)
+
+# Download geneset and look for overlaps
+library(BiocInstaller)
+#biocLite("GenomicFeatures")
+library(GenomicFeatures)
+library(IRanges)
+
+### Step 1: import genes from GFF files
+
+lyr_txdm = makeTxDbFromGFF(file ="Z:/share/Plant_genomic_ressources/Alyrata/Alyrata_107_v1.0.annotation.v2_Feb2015.gff.txt", format = c("gff3"), organism = "Arabidopsis lyrata")
+
+lyr_txdm
+lyrGenes=genes(lyr_txdm)
+
+#Ahal_txdm = makeTxDbFromGFF(file ="Z:/share/Plant_genomic_ressources/A_halleri/Aha_kent_genome/annotation.gff", format = c("gff3"), organism = "Arabidopsis halleri")
+
+#Ahal_txdm
+
+#head(seqlevels(lyr_txdm))
+
+
+### Convert list of significant markers to a "Genomic Ranges" table. 
+Siglist_GRange<- GRanges(
+  seqnames = tolower(Siglist$Chr),
+  ranges = IRanges(start = Siglist$Pos, width = 1),
+  mcols= data.frame(Siglist$Trait, Siglist$Marker, Siglist$Qvalue))
+
+Siglist_GRange
+```
+
+
+
+#Lyrata final steps
+```{r}
+findOverlaps(Siglist_GRange,genes(lyr_txdm), type =c("any"))
+
+MarkerInGenelist=mergeByOverlaps(Siglist_GRange,genes(lyr_txdm), type =c("any"))
+
+MarkerInGenelist$Siglist_GRange
+MarkerInGenelist$genes.lyr_txdm.
+MarkerInGenelist_final1=data.frame(MarkerInGenelist$Siglist_GRange,MarkerInGenelist$genes.lyr_txdm.)
+colnames(MarkerInGenelist_final1)=c("Chr", "start", "end", "width", "strand", "Trait", "Marker", "Qvalue", "Chr_gene", "gene_start", "gene_end", "gene_size", "gene_strand", "Gene" )
+
+Lyr_descript=read.delim("Z:/share/Plant_genomic_ressources/Alyrata/Alyrata_384_v2.1.annotation_info.txt", header=T)
+colnames(Lyr_descript)[2]=c("Gene")
+
+MarkerInGenelist_final=merge(MarkerInGenelist_final1,Lyr_descript, by="Gene")
+
+######                                                            #####
+###### MARKERS NOT IN GENES WILL BE LOST FROM LIST AT THIS POINT  #####
+######                                                            #####
+
+#write.table(MarkerInGenelist_final1,"GenesOverlappingSignificantMarkersformorpho.txt", sep="\t", row.names=F)
+
+Siglist_GRange_5kb<- GRanges(
+  seqnames = tolower(Siglist$Chr),
+  ranges = IRanges(start = Siglist$Pos-5000, end = Siglist$Pos+5000, names = Siglist$Trait),
+  mcols= data.frame(Siglist$Trait, Siglist$Marker, Siglist$Qvalue))
+
+Marker5kb_Genelist=mergeByOverlaps(Siglist_GRange_5kb,genes(lyr_txdm), type =c("any"))
+Marker5kb_Genelist$Siglist_GRange_5kb
+Marker5kb_Genelist$genes.lyr_txdm.
+Marker5kb_Genelist_final1=data.frame(Marker5kb_Genelist$Siglist_GRange_5kb,Marker5kb_Genelist$genes.lyr_txdm.)
+colnames(Marker5kb_Genelist_final1)=c("Chr", "start", "end", "width", "strand", "Trait", "Marker", "Qvalue", "Chr_gene", "gene_start", "gene_end", "gene_size", "gene_strand", "Gene" )
+Marker5kb_Genelist_final=merge(Marker5kb_Genelist_final1,Lyr_descript, by="Gene")
+
+#write.table(Marker5kb_Genelist_final,"Genes_overlapping5kb_SignificantMarkersformorpho.txt", sep="\t", row.names=F)
+
+Siglist_GRange_500bp<- GRanges(
+  seqnames = tolower(Siglist$Chr),
+  ranges = IRanges(start = Siglist$Pos-500, end = Siglist$Pos+500, names = Siglist$Trait),
+  mcols= data.frame(Siglist$Trait, Siglist$Marker, Siglist$Qvalue))
+
+Marker500bp_Genelist=mergeByOverlaps(Siglist_GRange_500bp,genes(lyr_txdm), type =c("any"))
+Marker5kb_Genelist$Siglist_GRange_5kb
+Marker5kb_Genelist$genes.Ahal_txdm.
+Marker500bp_Genelist_final1=data.frame(Marker500bp_Genelist$Siglist_GRange_500bp,Marker500bp_Genelist$genes.lyr_txdm.)
+colnames(Marker500bp_Genelist_final1)=c("Chr", "start", "end", "width", "strand", "Trait", "Marker", "Qvalue", "Chr_gene", "gene_start", "gene_end", "gene_size", "gene_strand", "Gene" )
+Marker500bp_Genelist_final=merge(Marker500bp_Genelist_final1,Lyr_descript, by="Gene")
+
+
+#write.table(Marker500bp_Genelist_final,"Genes_overlapping500bp_SignificantMarkersformorpho.txt", sep="\t", row.names=F)
+
+
+
+#Merge Final Dataframe with Ortholists to get to A. thaliana genes and their annotations.
+Lyr_ortholist=read.delim("Z:/share/Plant_genomic_ressources/Orthology/RawOrthoGrouping/LyrataGeneOrthogroup.txt", header=TRUE)
+Thal_ortholist=read.delim("Z:/share/Plant_genomic_ressources/Orthology/RawOrthoGrouping/ThalianaGeneOrthogroup.txt", header=TRUE)
+Ahal_ortholist=read.delim("Z:/share/Plant_genomic_ressources/Orthology/RawOrthoGrouping/HalleriGeneOrthogroup.txt", header=TRUE)
+
+
+### Create a file with the list of Thaliana genes and descriptions
+MarkerInGenelist_final_w_orthogroup= merge(MarkerInGenelist_final, Lyr_ortholist, by="Gene", all.x=TRUE)
+
+MarkerInGenelist_final_w_orthogroup_Thalgenes= merge(MarkerInGenelist_final_w_orthogroup, Thal_ortholist, by="OrthoGroup", all.x=TRUE)
+colnames(MarkerInGenelist_final_w_orthogroup_Thalgenes)[2]="Lyr_Gene"
+colnames(MarkerInGenelist_final_w_orthogroup_Thalgenes)[28]="Gene"
+
+Thal_description=read.delim(file="Z:/share/Plant_genomic_ressources/A_thaliana_Genome/TAIR10_functional_descriptions_20130831.txt", header=TRUE)
+Thal_mapman=read.delim("Z:/share/Plant_genomic_ressources/A_thaliana_Genome/Ath_AGI_LOCUS_TAIR10_Aug2012_MapMan.txt", header=TRUE)
+UtesMetal=read.delim("Z:/share/Plant_genomic_ressources/A_thaliana_Genome/MetalGenes_Ute_16_01_2017_generous.txt", header=TRUE)
+
+Thalgenes_described_MarkerInGenelist_final_w_orthogroup= merge(Thal_description, MarkerInGenelist_final_w_orthogroup_Thalgenes, by ="Gene")
+
+Thalgenes_Mapman_MarkerInGenelist_final_w_orthogroup= merge(Thal_mapman, MarkerInGenelist_final_w_orthogroup_Thalgenes, by ="Gene", all.y=TRUE)
+
+Thal_MapMan_Metal_MarkerInGenelist_w_orthogroup=merge(Thalgenes_Mapman_MarkerInGenelist_final_w_orthogroup, UtesMetal, by ="Gene", all.x=TRUE)
+
+
+#write.table(Thal_MapMan_Metal_MarkerInGenelist_w_orthogroup,"GenesOverlappingSignificantMarkers_ThalianaOrthologs_MapManDescriptions_MetalOverlaps_forMorpho_0.5lyrataLinkimputeR.txt", sep="\t", row.names=F)
+
+#write.table(Thalgenes_described_MarkerInGenelist_final_w_orthogroup,"GenesOverlappingSignificantMarkers_ThalianaOrthologs_Descriptions_Morpho.txt", sep="\t", row.names=F)
+
+
+
+
+### Create a file with all of the genes within 5Kb and their Thaliana orthologs
+
+Marker5kb_Genelist_final_w_orthogroup= merge(Marker5kb_Genelist_final, Lyr_ortholist, by="Gene", all.x=TRUE)
+
+Marker5kb_Genelist_final_w_orthogroup_Thalgenes= merge(Marker5kb_Genelist_final_w_orthogroup, Thal_ortholist, by="OrthoGroup", all.x=TRUE)
+colnames(Marker5kb_Genelist_final_w_orthogroup_Thalgenes)[2]="Lyr_Gene"
+colnames(Marker5kb_Genelist_final_w_orthogroup_Thalgenes)[28]="Gene"
+
+Thalgenes_described_Marker5kb_Genelist_final_w_orthogroup= merge(Thal_description, Marker5kb_Genelist_final_w_orthogroup_Thalgenes, by ="Gene")
+
+#write.table(Thalgenes_described_Marker5kb_Genelist_final_w_orthogroup,"Genes_overlapping5kb_SignificantMarkers_ThalianaOrthologs_Descriptions_Morpho.txt", sep="\t", row.names=F)
+
+Thalgenes_Mapman_Marker5kb_final_w_orthogroup= merge(Thal_mapman, Marker5kb_Genelist_final_w_orthogroup_Thalgenes, by ="Gene", all.y=TRUE)
+
+Thal_MapMan_Metal_Marker5kb_w_orthogroup=merge(Thalgenes_Mapman_Marker5kb_final_w_orthogroup, UtesMetal, by ="Gene", all.x=TRUE)
+
+write.table(Thal_MapMan_Metal_Marker5kb_w_orthogroup,"Genes_overlapping5kb_SignificantMarkers_ThalianaOrthologs_Metal_Morpho_0.5lyrata_LinkimputeR.txt", sep="\t", row.names=F)
+
+
+
+### Create a file with all of the genes within 500 bp and their Thaliana orthologs
+
+Marker500bp_Genelist_final_w_orthogroup= merge(Marker500bp_Genelist_final, Lyr_ortholist, by="Gene", all.x=TRUE)
+
+Marker500bp_Genelist_final_w_orthogroup_Thalgenes= merge(Marker500bp_Genelist_final_w_orthogroup, Thal_ortholist, by="OrthoGroup", all.x=TRUE)
+colnames(Marker500bp_Genelist_final_w_orthogroup_Thalgenes)[2]="Lyr_Gene"
+colnames(Marker500bp_Genelist_final_w_orthogroup_Thalgenes)[28]="Gene"
+
+Thalgenes_described_Marker500bp_Genelist_final_w_orthogroup= merge(Thal_description, Marker500bp_Genelist_final_w_orthogroup_Thalgenes, by ="Gene")
+
+#write.table(Thalgenes_described_Marker500bp_Genelist_final_w_orthogroup,"Genes_overlapping500bp_SignificantMarkers_ThalianaOrthologs_Descriptions_Morpho.txt", sep="\t", row.names=F)
+
+Thalgenes_Mapman_Marker500bp_final_w_orthogroup= merge(Thal_mapman, Marker500bp_Genelist_final_w_orthogroup_Thalgenes, by ="Gene", all.y=TRUE)
+
+Thal_MapMan_Metal_Marker500bp_w_orthogroup=merge(Thalgenes_Mapman_Marker500bp_final_w_orthogroup, UtesMetal, by ="Gene", all.x=TRUE)
+
+#write.table(Thal_MapMan_Metal_Marker500bp_w_orthogroup,"Genes_overlapping500bp_SignificantMarkers_ThalianaOrthologs_MapManDescriptions_MetalOverlaps_Morpho.txt", sep="\t", row.names=F)
+
+
+```
+
+
+
+
+#### Halleri Final steps
+
+#```{r}
+MarkerInGenelist=mergeByOverlaps(Siglist_GRange,genes(Ahal_txdm), type =c("any"))
+MarkerInGenelist$Siglist_GRange
+MarkerInGenelist$genes.Ahal_txdm.
+MarkerInGenelist_final1=data.frame(MarkerInGenelist$Siglist_GRange,MarkerInGenelist$genes.Ahal_txdm.)
+colnames(MarkerInGenelist_final1)=c("Chr", "start", "end", "width", "strand", "Trait", "Marker", "Qvalue", "Chr_gene", "gene_start", "gene_end", "gene_size", "gene_strand", "Gene" )
+
+Ahal_detail_full=read.delim("Z:/share/Plant_genomic_ressources/A_halleri/Aha_kent_genome/annotation_genesOnly.txt", header=T)
+Ahal_detail1=data.frame(Ahal_detail_full$Gene,Ahal_detail_full$Function) 
+colnames(Ahal_detail1)=c("Gene", "Function_AHRD")
+Ahal_RBH=read.delim("Z:/share/Plant_genomic_ressources/A_halleri/Aha_kent_genome/RBH_Ahal_Atha.txt",header=TRUE)
+colnames(Ahal_RBH)=c("Gene", "RBH_Thaliana")
+Ahal_detail=merge(Ahal_detail1,Ahal_RBH, by="Gene", all.x=TRUE)
+
+MarkerInGenelist_final=merge(MarkerInGenelist_final1,Ahal_detail, by="Gene")
+
+######                                                            #####
+###### MARKERS NOT IN GENES WILL BE LOST FROM LIST AT THIS POINT  #####
+######                                                            #####
+
+write.table(MarkerInGenelist_final,"GenesOverlappingSignificantMarkersinAhalforleaf_death.txt", sep="\t", row.names=F)
+
+Siglist_GRange_5kb<- GRanges(
+  seqnames = tolower(Siglist$Chr),
+  ranges = IRanges(start = Siglist$Pos-5000, end = Siglist$Pos+5000, names = Siglist$Trait),
+  mcols= data.frame(Siglist$Trait, Siglist$Marker, Siglist$Qvalue))
+
+Marker5kb_Genelist=mergeByOverlaps(Siglist_GRange_5kb,genes(Ahal_txdm), type =c("any"))
+#Marker5kb_Genelist$Siglist_GRange_5kb
+#Marker5kb_Genelist$genes.Ahal_txdm.
+Marker5kb_Genelist_final1=data.frame(Marker5kb_Genelist$Siglist_GRange_5kb,Marker5kb_Genelist$genes.Ahal_txdm.)
+colnames(Marker5kb_Genelist_final1)=c("Chr", "start", "end", "width", "strand", "Trait", "Marker", "Qvalue", "Chr_gene", "gene_start", "gene_end", "gene_size", "gene_strand", "Gene" )
+
+Marker5kb_Genelist_final=merge(Marker5kb_Genelist_final1,Ahal_detail, by="Gene")
+
+write.table(Marker5kb_Genelist_final,"Genes_overlapping5kb_SignificantMarkers_hal_leaf_death.txt", sep="\t", row.names=F)
+
+
+Siglist_GRange_500bp<- GRanges(
+  seqnames = tolower(Siglist$Chr),
+  ranges = IRanges(start = Siglist$Pos-500, end = Siglist$Pos+500, names = Siglist$Trait),
+  mcols= data.frame(Siglist$Trait, Siglist$Marker, Siglist$Qvalue))
+
+Marker500bp_Genelist=mergeByOverlaps(Siglist_GRange_500bp,genes(Ahal_txdm), type =c("any"))
+#Marker5kb_Genelist$Siglist_GRange_5kb
+#Marker5kb_Genelist$genes.Ahal_txdm.
+Marker500bp_Genelist_final1=data.frame(Marker500bp_Genelist$Siglist_GRange_500bp,Marker500bp_Genelist$genes.Ahal_txdm.)
+colnames(Marker500bp_Genelist_final1)=c("Chr", "start", "end", "width", "strand", "Trait", "Marker", "Qvalue", "Chr_gene", "gene_start", "gene_end", "gene_size", "gene_strand", "Gene" )
+Marker500bp_Genelist_final=merge(Marker500bp_Genelist_final1,Ahal_detail, by="Gene")
+
+
+write.table(Marker500bp_Genelist_final,"Genes_overlapping500bp_SignificantMarkers_hal_leaf_death.txt", sep="\t", row.names=F)
+
+
+#Merge Final Dataframe with Ortholists to get to A. thaliana genes and their annotations.
+#Lyr_ortholist=read.delim("/Volumes/pflaphy1/share/Plant_genomic_ressources/Orthology/RawOrthoGrouping/LyrataGeneOrthogroup.txt", header=TRUE)
+Thal_ortholist=read.delim("Z:/share/Plant_genomic_ressources/Orthology/RawOrthoGrouping/ThalianaGeneOrthogroup.txt", header=TRUE)
+Ahal_ortholist=read.delim("Z:/share/Plant_genomic_ressources/Orthology/RawOrthoGrouping/HalleriGeneOrthogroup.txt", header=TRUE)
+
+### Create a file with the list of Thaliana genes and descriptions
+MarkerInGenelist_final_w_orthogroup= merge(MarkerInGenelist_final, Ahal_ortholist, by="Gene", all.x=TRUE)
+
+MarkerInGenelist_final_w_orthogroup_Thalgenes= merge(MarkerInGenelist_final_w_orthogroup, Thal_ortholist, by="OrthoGroup", all.x=TRUE)
+colnames(MarkerInGenelist_final_w_orthogroup_Thalgenes)[2]="Ahal_Gene"
+colnames(MarkerInGenelist_final_w_orthogroup_Thalgenes)[18]="Gene"
+
+Thal_description=read.delim(file="Z:/share/Plant_genomic_ressources/A_thaliana_Genome/TAIR10_functional_descriptions_20130831.txt", header=TRUE)
+
+Thalgenes_described_MarkerInGenelist_final_w_orthogroup= merge(Thal_description, MarkerInGenelist_final_w_orthogroup_Thalgenes, by ="Gene")
+
+write.table(Thalgenes_described_MarkerInGenelist_final_w_orthogroup,"GenesOverlappingSignificantMarkers_ThalianaOrthologs_Descriptions_HAL_leaf_death.txt", sep="\t", row.names=F)
+
+Thal_mapman=read.delim("Z:/share/Plant_genomic_ressources/A_thaliana_Genome/Ath_AGI_LOCUS_TAIR10_Aug2012_MapMan.txt", header=TRUE)
+UtesMetal=read.delim("Z:/share/Plant_genomic_ressources/A_thaliana_Genome/MetalGenes_Ute_16_01_2017_generous.txt", header=TRUE)
+
+Thalgenes_Mapman_MarkerInGenelist_final_w_orthogroup= merge(Thal_mapman, MarkerInGenelist_final_w_orthogroup_Thalgenes, by ="Gene", all.y=TRUE)
+
+Thal_MapMan_Metal_MarkerInGenelist_w_orthogroup=merge(Thalgenes_Mapman_MarkerInGenelist_final_w_orthogroup, UtesMetal, by ="Gene", all.x=TRUE)
+
+write.table(Thal_MapMan_Metal_MarkerInGenelist_w_orthogroup,"GenesOverlappingSignificantMarkers_ThalianaOrthologs_MapManDescriptions_MetalOverlaps_HAL_leaf_death.txt", sep="\t", row.names=F)
+
+
+
+### Create a file with all of the genes within 5Kb and their Thaliana orthologs
+
+Marker5kb_Genelist_final_w_orthogroup= merge(Marker5kb_Genelist_final, Ahal_ortholist, by="Gene", all.x=TRUE)
+
+Marker5kb_Genelist_final_w_orthogroup_Thalgenes= merge(Marker5kb_Genelist_final_w_orthogroup, Thal_ortholist, by="OrthoGroup", all.x=TRUE)
+colnames(Marker5kb_Genelist_final_w_orthogroup_Thalgenes)[2]="Ahal_Gene"
+colnames(Marker5kb_Genelist_final_w_orthogroup_Thalgenes)[18]="Gene"
+
+Thalgenes_described_Marker5kb_Genelist_final_w_orthogroup= merge(Thal_description, Marker5kb_Genelist_final_w_orthogroup_Thalgenes, by ="Gene")
+
+write.table(Thalgenes_described_Marker5kb_Genelist_final_w_orthogroup,"Genes_overlapping5kb_SignificantMarkers_ThalianaOrthologs_Descriptions_HAL_leaf_death.txt", sep="\t", row.names=F)
+
+Thalgenes_Mapman_Marker5kb_final_w_orthogroup= merge(Thal_mapman, Marker5kb_Genelist_final_w_orthogroup_Thalgenes, by ="Gene", all.y=TRUE)
+
+Thal_MapMan_Metal_Marker5kb_w_orthogroup=merge(Thalgenes_Mapman_Marker5kb_final_w_orthogroup, UtesMetal, by ="Gene", all.x=TRUE)
+
+write.table(Thal_MapMan_Metal_Marker5kb_w_orthogroup,"Genes_overlapping5kb_SignificantMarkers_ThalianaOrthologs_MapManDescriptions_MetalOverlaps.txt", sep="\t", row.names=F)
+
+
+### Create a file with all of the genes within 500 bp and their Thaliana orthologs
+
+Marker500bp_Genelist_final_w_orthogroup= merge(Marker500bp_Genelist_final, Ahal_ortholist, by="Gene", all.x=TRUE)
+
+Marker500bp_Genelist_final_w_orthogroup_Thalgenes= merge(Marker500bp_Genelist_final_w_orthogroup, Thal_ortholist, by="OrthoGroup", all.x=TRUE)
+colnames(Marker500bp_Genelist_final_w_orthogroup_Thalgenes)[2]="Ahal_Gene"
+colnames(Marker500bp_Genelist_final_w_orthogroup_Thalgenes)[18]="Gene"
+
+Thalgenes_described_Marker500bp_Genelist_final_w_orthogroup= merge(Thal_description, Marker500bp_Genelist_final_w_orthogroup_Thalgenes, by ="Gene")
+
+write.table(Thalgenes_described_Marker500bp_Genelist_final_w_orthogroup,"Genes_overlapping500bp_SignificantMarkers_ThalianaOrthologs_Descriptions.txt", sep="\t", row.names=F)
+
+
+Thalgenes_Mapman_Marker500bp_final_w_orthogroup= merge(Thal_mapman, Marker500bp_Genelist_final_w_orthogroup_Thalgenes, by ="Gene", all.y=TRUE)
+
+Thal_MapMan_Metal_Marker500bp_w_orthogroup=merge(Thalgenes_Mapman_Marker500bp_final_w_orthogroup, UtesMetal, by ="Gene", all.x=TRUE)
+
+write.table(Thal_MapMan_Metal_Marker500bp_w_orthogroup,"Genes_overlapping500bp_SignificantMarkers_ThalianaOrthologs_MapManDescriptions_MetalOverlaps.txt", sep="\t", row.names=F)
+```
+
+
+
+

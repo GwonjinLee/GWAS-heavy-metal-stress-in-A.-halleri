@@ -1,0 +1,182 @@
+---
+title: "Population structure_PCA mapping"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r, include=FALSE}
+#install.packages("RgoogleMaps")
+#install.packages("mapdata")#install.packages("maps")
+#install.packages("mapplots")
+
+#install.packages("ggplot2", dep = TRUE)
+
+#install.packages("pillar")
+
+#install.packages("ggmap")
+
+library(RgoogleMaps)
+library(gplots)
+library(RColorBrewer)
+library(mapdata)
+library(mapplots)
+library(maps)
+library(ggplot2)
+library(ggmap)
+
+```
+
+
+# Load necessary files
+```{r}
+setwd("C:/Users/Justin/OneDrive - rub.de/PhD/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/Population structure")
+
+#For all individuals
+ColorPC <- read.delim("ColorPCswithoutPC_ALL.txt")
+PC_646 <- read.delim("Ahal_PC_646.txt")
+PCs <- read.delim("PC_20_pcadapt.txt")
+PCs_6 <- read.delim("PC_6_pcadapt.txt")
+struc_map1 <- read.delim("Ricardo_complete_matrix_all_data_JEA_mod.txt")
+PCmerged <- merge(ColorPC, PCs, by = "Sample")
+PCmerged_6 <- merge(ColorPC, PCs_6, by = "Sample")
+AllPC_soil <- merge(PCmerged, struc_map1, by = "Sample")
+AllPC_soil_6 <- merge(PCmerged_6, struc_map1, by = "Sample")
+
+AllPC_soil2 <- merge( struc_map1[,c(3,5)],PCmerged, by = "Sample")
+head(AllPC_soil2)
+
+#For only EC100
+ColorPCandEC100 <-read.delim("ColorPCs+EC100.txt")
+
+struc_map1 = read.delim("Ricardo_complete_matrix_all_data_JEA_mod.txt")
+
+AllphenoPCAsoil = merge(struc_map1,ColorPCandEC100, by = "Sample")
+
+#write.csv(AllphenoPCAsoil, file = "Allphenotypeandsoilinfo")
+```
+
+
+#For 646 thesis
+```{r}
+#For all individuals
+PC_646 <- read.delim("Ahal_PC_646.txt")
+head(PC_646)
+PCmerged_646 <- merge(ColorPC[,c(1,7)], PC_646, by = "Sample")
+
+head(PCmerged_646)
+
+All_646 <- merge(PCmerged_646, struc_map1[,c(1:7, 25, 26)], by ="Sample" )
+head(All_646)
+
+#write.table(as.data.frame(All_646), "All_646.txt", sep = "\t", row.names = FALSE)
+All_646 <- read.delim("All_646.txt")
+
+plot( All_646$PC1, All_646$PC2, col=All_646$Colors, xlab = c("PC1 (12.6 %)"), ylab = c("PC2 (4.9 %)"), pch=All_646$Soil_clusterpch)
+legend("topright", c("M", "NM"), pch = c(3,1))
+
+plot( All_646$PC1, All_646$PC3, col=All_646$Colors, xlab = c("PC1 (12.6 %)"), ylab = c("PC3 (3.5 %)"), pch=All_646$Soil_clusterpch)
+legend("bottomright", c("M", "NM"), pch = c(3,1))
+
+
+map(database = "world", fill = TRUE, ylim=c(42,55), xlim=c(0,30), col="white")
+points(jitter(All_646$longitude,1,.1), jitter(All_646$latitude,1,.1), col=All_646$ColorPCs, pch=All_646$Soil_clusterpch)
+legend("topright", title= "soil type", c("M", "NM"), pch = c(3,1))
+
+
+```
+
+
+# Plot by Population Cluster and include map
+```{r}
+#"XXX" = the EC100 column name
+
+boxplot(ColorPCandEC100$EC100~ColorPCandEC100$ColorPCs, xlab="PCA cluster", ylab=expression("EC"[100]*" (µM)"), col=c("darkgray",2,3,4,5,6), main="EC100 by PCA cluster")
+
+boxplot(ColorPCandEC100$leaf_death~ColorPCandEC100$ColorPCs, xlab="PCA cluster", ylab=expression("degree"), col=c("darkgray",2,3,4,5,6), main="Leaf death by PCA cluster")
+
+boxplot(ColorPCandEC100$necrotic_spot~ColorPCandEC100$ColorPCs, xlab="PCA cluster", ylab=expression("degree"), col=c("darkgray",2,3,4,5,6), main="Necrotic spot by PCA cluster")
+
+boxplot(ColorPCandEC100$red.browning~ColorPCandEC100$ColorPCs, xlab="PCA cluster", ylab=expression("degree"), col=c("darkgray",2,3,4,5,6), main="Red browning by PCA cluster")
+
+boxplot(ColorPCandEC100$chlorosis~ColorPCandEC100$ColorPCs, xlab="PCA cluster", ylab=expression("degree"), col=c("darkgray",2,3,4,5,6), main="Chlorosis by PCA cluster")
+
+
+plot(AllphenoPCAsoil$PC2, AllphenoPCAsoil$PC1,col=AllphenoPCAsoil$ColorPCs, xlab = c("PC2"), ylab = c("PC1"), pch=AllphenoPCAsoil$Soil_clusterpch)
+legend("topright", c("M", "NM"), pch = c(3,1))
+
+
+map(database = "world", fill = TRUE, ylim=c(42,55), xlim=c(0,30), col="white")
+points(jitter(AllphenoPCAsoil$longitude,1,.1), jitter(AllphenoPCAsoil$latitude,1,.1), col=AllphenoPCAsoil$ColorPCs, pch=AllphenoPCAsoil$Soil_clusterpch)
+legend("topright", title= "soil type", c("M", "NM"), pch = c(3,1))
+
+
+
+
+#For all individuals
+
+plot(AllPC_soil$PC2, AllPC_soil$PC1,col=AllPC_soil$ColorPCs, xlab = c("PC2 (4.8%)"), ylab = c("PC1 (12.9%)"), pch=AllPC_soil$Soil_clusterpch)
+legend("topright", c("M", "NM"), pch = c(3,1)) 
+
+
+map(database = "world", fill = TRUE, ylim=c(42,55), xlim=c(0,30), col="white")
+points(jitter(AllPC_soil$longitude,1,.1), jitter(AllPC_soil$latitude,1,.1), col=AllPC_soil$ColorPCs, pch=AllPC_soil$Soil_clusterpch)
+legend("topright", title= "Soil type", c("M", "NM"), pch = c(3,1))
+
+
+
+
+#Test for other PCs (20)
+
+plot(AllPC_soil$PC1, AllPC_soil$PC20, col=AllPC_soil$ColorPCs, pch=AllPC_soil$Soil_clusterpch, 
+     xlab = c("PC1 (16.7%)"), ylab = c("PC5 (2.9%)"))
+legend("topleft", c("M", "NM"), pch = c(3,1)) 
+
+#Test for other PCs (6)
+par(mfrow=c(2,2))
+plot(AllPC_soil_6$PC1, AllPC_soil_6$PC3, col=AllPC_soil_6$ColorPCs, pch=AllPC_soil_6$Soil_clusterpch, 
+     xlab = c("PC1 (10.4%)"), ylab = c("PC3 (4.8%)"), cex =1.5)
+plot(AllPC_soil_6$PC1, AllPC_soil_6$PC4, col=AllPC_soil_6$ColorPCs, pch=AllPC_soil_6$Soil_clusterpch, 
+     xlab = c("PC1 (10.4%)"), ylab = c("PC4 (3.3%)"), cex =1.5)
+plot(AllPC_soil_6$PC1, AllPC_soil_6$PC5, col=AllPC_soil_6$ColorPCs, pch=AllPC_soil_6$Soil_clusterpch, 
+     xlab = c("PC1 (10.4%)"), ylab = c("PC5 (2.4%)"), cex =1.5)
+plot(AllPC_soil_6$PC1, AllPC_soil_6$PC6, col=AllPC_soil_6$ColorPCs, pch=AllPC_soil_6$Soil_clusterpch, 
+     xlab = c("PC1 (10.4%)"), ylab = c("PC6 (2.2%)"), cex =1.5)
+
+
+
+```
+
+
+# In the google map
+```{r}
+#For all ind.
+map <- get_googlemap("Viena, Austria", zoom = 5, maptype = "terrain")
+ggmap(map) + 
+  theme_void() + 
+  ggtitle("terrain") + 
+  theme(panel.border = element_rect(colour = "gray80", fill=NA, size=1)
+  ) + 
+geom_point(data=AllPC_soil, aes(x=longitude, y=latitude), pch=AllPC_soil$Soil_clusterpch, col=AllPC_soil$ColorPCs, size=2, stroke=1)
+
+
+
+#For only EC100
+map <- get_googlemap("Viena, Austria", zoom = 5, maptype = "terrain")
+ggmap(map) + 
+  theme_void() + 
+  ggtitle("terrain") + 
+  theme(panel.border = element_rect(colour = "gray80", fill=NA, size=1)
+  ) + 
+geom_point(data=AllphenoPCAsoil, aes(x=longitude, y=latitude), pch=AllphenoPCAsoil$Soil_clusterpch, col=AllphenoPCAsoil$ColorPCs, size=4, stroke=2)
+
+```
+
+

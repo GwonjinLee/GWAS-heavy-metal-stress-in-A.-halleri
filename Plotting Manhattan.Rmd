@@ -1,0 +1,92 @@
+---
+title: "New_candidate_GWAS"
+author: "Gwonjin Lee"
+date: "May 26, 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(qqman)
+setwd("C:/Users/Justin/OneDrive - rub.de/PhD/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/New_GWAS/Final_Manhattan")
+
+
+#Load the results of all traits (Ahal_0.15)
+
+# Leaf death
+
+EC100_Ahal0.15_res <- read.delim("Ahal0.15_all_result.txt")
+
+Lea.dea_Ahal0.15 <- EC100_Ahal0.15_res[EC100_Ahal0.15_res$Trait == "leaf_death",]
+Lea.dea_Ahal0.15 <- Lea.dea_Ahal0.15[-1,] 
+head(Lea.dea_Ahal0.15)
+
+TopSNP_lea.dea_Aha0.15 <- "SENA|FJVB01000002|FJVB01000002.1_1477507"
+
+Lea.dea_Ahal0.15_manh <-manhattan(Lea.dea_Ahal0.15, main="Leaf death", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, highlight = TopSNP_lea.dea_Aha0.15, xlab = "Scaffold")
+qq(Lea.dea_Ahal0.15$p)
+
+#Necrotic spot
+Necro_Ahal0.15 <- EC100_Ahal0.15_res[EC100_Ahal0.15_res$Trait == "necrotic_spot",]
+Necro_Ahal0.15 <- Necro_Ahal0.15[-1,] 
+Necro_Ahal0.15_manh <-manhattan(Necro_Ahal0.15, main="Necrotic spot", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, xlab = "Scaffold")
+qq(Necro_Ahal0.15$p)
+
+#Chlorosis
+Chl_Ahal0.15 <- EC100_Ahal0.15_res[EC100_Ahal0.15_res$Trait == "chlorosis",]
+Chl_Ahal0.15 <- Chl_Ahal0.15[-1,] 
+Chl_Ahal0.15_manh <-manhattan(Chl_Ahal0.15, main="Chlorosis", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, xlab = "Scaffold")
+qq(Chl_Ahal0.15$p)
+
+#Red-browing
+Redb_Ahal0.15 <- EC100_Ahal0.15_res[EC100_Ahal0.15_res$Trait == "red_browning",]
+Redb_Ahal0.15 <- Redb_Ahal0.15[-1,] 
+Redb_Ahal0.15_manh <-manhattan(Redb_Ahal0.15, main="Red-browing", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, xlab = "Scaffold")
+qq(Redb_Ahal0.15$p)
+
+#EC100
+EC100_Ahal0.15 <- EC100_Ahal0.15_res[EC100_Ahal0.15_res$Trait == "EC100",]
+EC100_Ahal0.15 <- EC100_Ahal0.15[-1,] 
+EC100_Ahal0.15_manh <-manhattan(EC100_Ahal0.15, main="EC100", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, xlab = "Scaffold")
+qq(EC100_Ahal0.15$p)
+
+dev.off()
+
+
+
+### Find Ahal 0.5 result!!!!!!!!!!!!!!!!!!!
+#Load the results of all traits (Ahal_0.5)
+
+# Leaf death
+
+leafd_necro_Ahal0.50_res <- read.delim("Ahal0.50_leafd_necro_result.txt")
+
+Lea.dea_Ahal0.50 <- leafd_necro_Ahal0.50_res[leafd_necro_Ahal0.50_res$Trait == "leaf_death",]
+
+head(Lea.dea_Ahal0.50)
+
+TopSNP_lea.dea_Aha0.15 <- "SENA|FJVB01000002|FJVB01000002.1_1477507"
+
+Lea.dea_Ahal0.50_manh <-manhattan(Lea.dea_Ahal0.50, main="Leaf death", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, highlight = TopSNP_lea.dea_Aha0.15, xlab = "Scaffold")
+qq(Lea.dea_Ahal0.50$p)
+
+#Necrotic spot
+Necro_Ahal0.50 <- leafd_necro_Ahal0.50_res[leafd_necro_Ahal0.50_res$Trait == "necrotic_spot",]
+Necro_Ahal0.50_manh <-manhattan(Necro_Ahal0.50, main="Necrotic spot", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, xlab = "Scaffold")
+qq(Necro_Ahal0.50$p)
+
+
+EC100_Ahal0.50_res <- read.delim("Ahal0.50_EC100_result.txt")
+
+#EC100
+EC100_Ahal0.50 <- EC100_Ahal0.50_res[EC100_Ahal0.50_res$Trait == "EC100",]
+TopSNPs_EC100_Aha0.15 <- c("SENA|FJVB01000014|FJVB01000014.1_828818", "SENA|FJVB01000323|FJVB01000323.1_21655")
+
+EC100_Ahal0.50_manh <-manhattan(EC100_Ahal0.50, main="EC100", chr = "Chr", bp = "Pos", p = "p", snp = "Marker", ylim= c(0,6), genomewideline = -log10(1.0e-04), suggestiveline = FALSE, xlab = "Scaffold", highlight = TopSNPs_EC100_Aha0.15)
+qq(EC100_Ahal0.50$p)
+
+
+
+
+```

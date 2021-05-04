@@ -1,0 +1,215 @@
+---
+title: "GWAS Hits to Maf_lyrata_50perc_missing Linkimputed"
+author: "Gwonjin Lee"
+date: "05 December 2017"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir ="C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/GWAS Morpho of set1234567 final/Morpho_significant markers_0.5 lyrata_LinkimputeR_sig3.7")
+
+library(maps)
+library(qqman)
+library(GenomicRanges)
+library(GenomicFeatures)
+library(IRanges)
+```
+
+```{r, echo=FALSE}
+
+
+#Load files
+
+#Genetic Hapmap
+
+#Hmap0.15=read.delim("C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/Reference_genome/hmp/Lyr_postFinalFilter_Imputed_BadSampsRemoved_15%LinkimputeR.hmp.txt") #MY data
+#Hmap=read.delim("C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/Reference_genome/hmp/test/50missing_lyrata genome commaremoved.txt")
+
+Hmap0.5=read.delim("C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/Reference_genome/hmp/50missing lyrata for morpho hmp/50_lyrata genome for morpho.txt")
+
+#colnames(Hmap0.15)[1]=c("marker")
+colnames(Hmap0.5)[1]=c("marker")
+
+# List of significant markers with geneic information
+setwd("C:/Users/Justin/Gwonjin/Experiment/Result/Sequential growth test_Hydroponics/Statistical analysis/GWAS Morpho of set1234567 final/Morpho_significant markers_0.5 lyrata_LinkimputeR_sig3.7")
+
+#Sigmarkers=read.delim("Genes_overlapping5kb_SignificantMarkers_ThalianaOrthologs_MapManDescriptions_MetalOverlaps_Morpho_50_lyrata.txt")
+
+Sigmarkers=read.delim("5kb_SignificantMarkers_Metal_Morpho_0.5lyrata_LinkR.txt")
+#Sigmarkers=read.delim("Genes_overlapping5kb_SignificantMarkers_ThalianaOrthologs_Descriptions_Morpho_50lyr_Tasselimputed.txt")
+
+
+#Phenotype Data
+
+myYmorpho = read.delim("Phenotype_Morphological symptoms.txt", check.names = FALSE)
+
+
+#Geographic coordinates of collection sites
+struc_map1=read.delim("Y:/kraemu89/public/Justin_Gwonjin/Justin_paper/Tables/Table_Samples_Sites.txt")
+myY=merge(struc_map1,myYmorpho, by="Sample")
+myY$Soil_clusterpch=myY$Site_ContType
+myY$Soil_clusterpch <- lapply(myY$Soil_clusterpch, gsub, pattern = "Non_metalliferous", replacement = 1, fixed = TRUE)
+myY$Soil_clusterpch <- lapply(myY$Soil_clusterpch, gsub, pattern = "Metalliferous", replacement = 3, fixed = TRUE)
+myY$Soil_clusterpch=as.numeric(myY$Soil_clusterpch)
+
+#hist(Hmap0.15$Maf, breaks=50)
+hist(Hmap0.5$Maf, breaks=50)
+
+
+
+Sigmarkersmaf=merge(Sigmarkers,Hmap0.5, by="marker")
+summary(Sigmarkersmaf$Maf)
+
+#X=data.frame(Sigmarkersmaf$Gene,Sigmarkersmaf$Maf)
+#X
+
+#Load the Pvalues
+
+PValues=read.delim("Pvalues_0.5LinkimputeR.txt")
+
+
+#K=colnames(PValues)
+
+PValues$Chr <- as.numeric(lapply(PValues$Chr, gsub, pattern = "SCAFFOLD_", replacement = "", fixed = TRUE))
+
+
+### Import genes from GFF files
+
+#lyr_txdm = makeTxDbFromGFF(file ="/Volumes/pflaphy1/share/Plant_genomic_ressources/Alyrata/Alyrata_107_v1.0.annotation.v2_Feb2015.gff.txt", format = c("gff3"), organism = "Arabidopsis lyrata")
+
+#lyr_txdm
+#lyrGenes=genes(lyr_txdm)
+
+
+
+```
+
+
+
+
+
+```{r, echo = FALSE, results = "asis"}
+#Goals: Create density plots for all notable hits
+# Return MAF
+# Extract alleles
+# Density plot for all traits
+
+#4) Create a map
+
+
+#TraitGenotypes=data.frame(Sigmarkersmaf$Trait,Sigmarkersmaf[54:855])
+TraitGenotypes=data.frame(Sigmarkersmaf$Trait,Sigmarkersmaf[65:ncol(Sigmarkersmaf)])
+
+#TraitGenotypes=data.frame(Sigmarkersmaf$Trait,Sigmarkersmaf[(ncol(Metalhits)+20):ncol(Sigmarkersmaf)])
+TraitGenotypes3=data.frame(t(TraitGenotypes))
+
+#i=13
+template <- "
+
+##In this section a GWAS with %s discovered the marker %s 
+
+The MAF for this marker is %s
+
+This marker is in or near %s 
+
+This gene is in Orthogroup %s
+
+One of the potential homologs for this gene in A. thaliana was %s
+
+According to the TAIR 2013 descriptions this gene is: %s 
+
+%s . 
+Annotated in Ute's Metal List: %s
+
+"
+
+template2 = "\n
+Allele counts:\n
+%s %s\n
+%s %s\n
+%s %s\n
+
+"
+
+
+for (i in seq(1,length(Sigmarkersmaf$Trait),1)){
+  # Print the SNP of interest
+    cat(sprintf(template, as.character(Sigmarkersmaf$Trait[i]), as.character(Sigmarkersmaf$marker[i]), as.character(Sigmarkersmaf$Maf[i]),as.character(Sigmarkersmaf$Lyr_Gene[i]),as.character(Sigmarkersmaf$OrthoGroup[i]),  as.character(Sigmarkersmaf$Gene[i]),as.character(Sigmarkersmaf$NAME[i]),as.character(Sigmarkersmaf$DESCRIPTION[i]),as.character(Sigmarkersmaf$Name[i])))
+ 
+
+  #Create a Manhattan plot
+manhattan(PValues, snp = "Marker", chr="Chr", bp = "Pos", p=as.character(Sigmarkersmaf$Trait[i]), main = as.character(Sigmarkersmaf$Trait[i]), ylab="-Log P-value", col = c("blue4", "orange3"), highlight=as.character(Sigmarkersmaf$marker[i]), suggestiveline = F,genomewideline=F, xlab="Scaffold" )
+  
+  #Sort into three groups the individuals with each of the allele states
+    Allele1=row.names(TraitGenotypes3[TraitGenotypes3[i]==as.character(Sigmarkersmaf$A1[i]),])
+    Allele2=row.names(TraitGenotypes3[TraitGenotypes3[i]==as.character(Sigmarkersmaf$A2[i]),])
+    Het=row.names(TraitGenotypes3[TraitGenotypes3[i]==as.character(Sigmarkersmaf$Het[i]),])
+  
+  #Create a table with the count of each allele in the population
+    cat(sprintf(template2,as.character(Sigmarkersmaf$A1[i]),length(Allele1),as.character(Sigmarkersmaf$Het[i]),length(Het),as.character(Sigmarkersmaf$A2[i]),length(Allele2) ))
+      
+  #Box plot
+    boxplot(myY[myY$Sample %in% Allele1,as.character(Sigmarkersmaf$Trait[i])],myY[myY$Sample %in% Het,as.character(Sigmarkersmaf$Trait[i])], myY[myY$Sample %in% Allele2,as.character(Sigmarkersmaf$Trait[i])], na.rm=TRUE, ylim=c(0, 3), ylab=paste(as.character(Sigmarkersmaf$Trait[i])), names=c(as.character(Sigmarkersmaf$A1[i]),as.character(Sigmarkersmaf$Het[i]), as.character(Sigmarkersmaf$A2[i])), main=paste(as.character(Sigmarkersmaf$Trait[i]), as.character(Sigmarkersmaf$Name[i]),as.character(Sigmarkersmaf$Gene[i]),as.character(Sigmarkersmaf$Lyr_Gene[i]), sep="  "))
+  
+    #Calculate the density plot for allele 1
+    XA1=myY[myY$Sample %in% Allele1,as.character(Sigmarkersmaf$Trait[i])]
+    A1d=c() #This line added in version 2
+    A1ll=c() #This line added in version 2
+    if(length(XA1[!is.na(XA1)])>0){
+      A1d=density(myY[myY$Sample %in% Allele1,as.character(Sigmarkersmaf$Trait[i])],na.rm=TRUE, bw=0.4)
+      A1ll=myY[myY$Sample %in% Allele1,c("latitude","longitude","Soil_clusterpch")]
+    }
+  #Calculate the density plot for allele 2
+    XA2=myY[myY$Sample %in% Allele2,as.character(Sigmarkersmaf$Trait[i])]
+    A2d=c() #This line added in version 2
+    A2ll=c() #This line added in version 2
+    if(length(XA2[!is.na(XA2)])>0){
+      A2d=density(myY[myY$Sample %in% Allele2,as.character(Sigmarkersmaf$Trait[i])],na.rm=TRUE, bw=0.4)
+      A2ll=myY[myY$Sample %in% Allele2,c("latitude","longitude","Soil_clusterpch")]
+    }
+  #Calculate the density plot for heterozygous individuals 
+    XHets=myY[myY$Sample %in% Het,as.character(Sigmarkersmaf$Trait[i])]
+    Hetd=c() #This line added in version 2
+    Hetll=c() #This line added in version 2
+    if(length(XHets[!is.na(XHets)])>0){
+      Hetd=density(myY[myY$Sample %in% Het,as.character(Sigmarkersmaf$Trait[i])],na.rm=TRUE, bw=0.4)
+      Hetll=myY[myY$Sample %in% Het,c("latitude","longitude","Soil_clusterpch")]
+    }
+  #Calculate the density plot for all individuals
+    Alld=density((myY[,as.character(Sigmarkersmaf$Trait[i])]), na.rm=TRUE, bw=0.4)
+    
+  #Plot the density distributions on a single graph
+    plot(Alld, main=paste(as.character(Sigmarkersmaf$Trait[i]), as.character(Sigmarkersmaf$Name[i]),as.character(Sigmarkersmaf$Gene[i]),as.character(Sigmarkersmaf$Lyr_Gene[i]), sep="  ") , xlab=c(as.character(Sigmarkersmaf$Trait[i])), ylim=c(0,max(max(A1d$y, na.rm = TRUE),max(A2d$y, na.rm = TRUE),max(Hetd$y, na.rm = TRUE),max(Alld$y, na.rm = TRUE))))
+    polygon(A1d, border="green")
+    if(length(myY[myY$Sample %in% Allele2,as.character(Sigmarkersmaf$Trait[i])])>0){
+        polygon(A2d, border="red")
+    }
+    if(length(myY[myY$Sample %in% Het,as.character(Sigmarkersmaf$Trait[i])])>0){
+        polygon(Hetd, border="blue")
+    }
+  #Add a legend
+    legend("topright", legend=c("All", as.character(Sigmarkersmaf$A1[i]), as.character(Sigmarkersmaf$A2[i]),as.character(Sigmarkersmaf$Het[i])),  col=c("black","green", "red", "blue"), lty=1)
+    
+    
+    
+  #Add a map that colors the individuals based on their allele
+    EMap=map(database="world", fill=TRUE, ylim=c(43,55), xlim=c(0,28), col="white")
+    nam=grep(":",EMap$names,inv=TRUE,val=TRUE)
+    map.text(EMap,regions=nam,label=iso.alpha(nam),col=1, exact=TRUE, add=TRUE)
+    box()
+    points(jitter(A1ll$longitude,1,.2), jitter(A1ll$latitude,1,.2), pch=A1ll$Soil_clusterpch, col="green")
+    points(jitter(A2ll$longitude,1,.2), jitter(A2ll$latitude,1,.2), pch=A2ll$Soil_clusterpch, col="red")
+    points(jitter(Hetll$longitude,1,.2), jitter(Hetll$latitude,1,.2), pch=Hetll$Soil_clusterpch, col="blue")
+    legend("topright", title=as.character(Sigmarkersmaf$Trait[i]) ,legend=c(as.character(Sigmarkersmaf$A1[i]), as.character(Sigmarkersmaf$A2[i]),as.character(Sigmarkersmaf$Het[i])),  col=c("green", "red", "blue"), lty=1)
+    legend("bottomleft",legend=c("Metalliferous Soil","Non-Metalliferous Soil") ,pch=c(3,1),text.width=10 )
+    }
+
+```
+
+
+
+
+
