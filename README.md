@@ -1,2 +1,2 @@
-# halleri_GWAS
-GWAS for Cd tolerance in A. halleri
+
+GWAS with Cd tolerance in natural populations of A. halleri collected across 165 European sites
